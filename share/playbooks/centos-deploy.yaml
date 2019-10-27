@@ -1,0 +1,43 @@
+---
+- hosts: centosnode
+  remote_user: vagrant
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: Create simeplage Folder
+    file:
+     path: /var/www/simplepage
+     state: directory
+    become: yes
+  - name : Copy Simple Php Page
+    copy:
+     src: /home/vagrant/share/simplepage.php
+     dest: /var/www/html/index.php
+     owner: vagrant
+     group: vagrant
+     mode: '0644'
+    become: yes
+  - name: Change Listen port
+    lineinfile:
+     path: /etc/httpd/conf/httpd.conf
+     regexp: '^Listen '
+     line: 'Listen 8081'
+     state: present
+    become: yes
+  - name: Change default conf
+    lineinfile:
+     path: /etc/httpd/sites-available/000-default.conf
+     regexp: '^<VirtualHost \*:'
+     line: '<VirtualHost *:8081>'
+     state: present
+    become: yes
+  - name: Copy Conf
+    copy:
+     src: /home/vagrant/share/configuration.conf
+     dest: /etc/httpd/conf/example.conf
+    become: yes
+  - name: Restart Httpd
+    service:
+      name: httpd
+      state: restarted
