@@ -7,13 +7,15 @@
   tasks:
   - name: Install Collectd
     apt: 
-     name: collectd 
+     name:
+      - collectd 
      state: present
     when: ansible_os_family == "Debian"
     
   - name: Install Collectd
     apt: 
-     name: collectd-utils
+     name:
+      - collectd-utils
      state: present
     when: ansible_os_family == "Debian"
 
