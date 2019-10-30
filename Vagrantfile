@@ -96,6 +96,70 @@ Vagrant.configure("2") do |config|
 	  echo -e "\n---- Node 1 and Node 2 are ready, make sure you use ansible playbooks from master ----"
     SHELL
   end
+  
+  config.vm.define :node3 do |config|
+	config.vm.box = "ubuntu/bionic64"
+	config.vm.synced_folder "./share", "/home/vagrant/share"
+	config.vm.host_name = "node3"
+	config.vm.network "public_network"
+	config.vm.network "private_network", ip: "10.145.0.13"
+	config.vm.provider :virtualbox do |vb|
+		vb.customize ["modifyvm", :id, "--memory", "1024"]
+		vb.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+    config.vm.provision "shell", inline: <<-SHELL
+	  apt-get update && apt-get install software-properties-common python -y
+	  apt-add-repository --yes ppa:ansible/ansible && apt-get update
+	  apt-get install ansible -y
+	  apt-get install ansible-lint -y
+	  echo -e "\n---- Install Jenkins ----"
+	  wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -
+	  echo deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list
+	  apt-get update
+	  apt-get install jenkins -y
+	  apt-get install openjdk-8-jre -y
+	  echo -e "\n---- copy ssh keys from sync folder ----"
+	  rm /home/vagrant/.ssh/authorized_keys
+	  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
+	  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
+	  #cp /home/vagrant/share/id_rsa2.pub /home/vagrant/.ssh/authorized_keys
+	  rm /./etc/ansible/hosts
+	  cp /home/vagrant/share/hosts.txt /./etc/ansible/hosts
+	  echo -e "\n---- ssh permisions set ----"
+	  chmod 755 /home/vagrant/.ssh
+	  chmod 400 /home/vagrant/.ssh/id_rsa
+	  chmod 400 /home/vagrant/.ssh/authorized_keys
+	  chown -R vagrant:vagrant /home/vagrant/.ssh
+	  rm /./etc/init.d/jenkins
+	  cp /home/vagrant/share/jenkins.txt /./etc/init.d/jenkins
+	  systemctl deamon-reload
+	  service jenkins start
+	SHELL
+  end
+  
+  config.vm.define :node4 do |config|
+	config.vm.box = "ubuntu/bionic64"
+	config.vm.synced_folder "./share", "/home/vagrant/share"
+	config.vm.host_name = "node4"
+	config.vm.network "public_network"
+	config.vm.network "private_network", ip: "10.145.0.14"
+	config.vm.provider :virtualbox do |vb|
+		vb.customize ["modifyvm", :id, "--memory", "1024"]
+		vb.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+    config.vm.provision "shell", inline: <<-SHELL
+	  apt-get update && apt-get install software-properties-common python -y
+	  echo -e "\n---- copy ssh keys from sync folder ----"
+	  rm /home/vagrant/.ssh/authorized_keys
+	  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
+	  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
+	  echo -e "\n---- ssh permisions set ----"
+	  chmod 755 /home/vagrant/.ssh
+	  chmod 400 /home/vagrant/.ssh/id_rsa
+	  chmod 400 /home/vagrant/.ssh/authorized_keys
+	  chown -R vagrant:vagrant /home/vagrant/.ssh
+	SHELL
+  end
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.

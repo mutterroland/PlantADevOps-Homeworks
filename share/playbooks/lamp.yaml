@@ -1,0 +1,60 @@
+---
+- hosts: web
+  remote_user: vagrant
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: Install Apache2
+    apt:
+     name: apache2
+     state: present
+    when: ansible_os_family == "Debian"
+
+  - name: Install httpd and php
+    yum:
+     name:
+      - httpd
+      - php
+      - php-mysql
+     state: present
+    when: ansible_os_family == "RedHat"
+
+  - name: Install web role specific dependencies
+    yum:
+     name:
+      - git
+     state: installed
+    when: ansible_os_family == "RedHat"
+
+  - name: Start & Enable Apache Server to start on boot
+    service: name=httpd state=started enabled=yes
+    when: ansible_os_family == "RedHat"
+
+  - name: Start Apache
+    service: name=apache2 state=started enabled=true
+    when: ansible_os_family == "Debian"
+
+  - name: Install MySql
+    apt: pkg=mysql-server state=present
+    when: ansible_os_family == "Debian"
+
+  - name: Start Mysql
+    service: name=mysql state=started enabled=true
+    when: ansible_os_family == "Debian"
+
+  - name: Add repo for PHP
+    apt_repository:
+      repo="ppa:ondrej/php"
+    when: ansible_os_family == "Debian"
+
+  - name: Install Php
+    apt:
+     name:
+      - php7.1-cli
+      - php7.1-curl
+      - php7.1-fpm
+      - php7.1-intl
+      - php7.1-mysql
+     state: latest
+    when: ansible_os_family == "Debian"

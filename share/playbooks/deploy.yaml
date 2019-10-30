@@ -1,0 +1,72 @@
+---
+- hosts: web
+  remote_user: vagrant
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: Create simeplage Folder
+    file:
+     path: /var/www/simplepage
+     state: directory
+
+  - name : Copy Simple Php Page
+    copy:
+     src: /home/vagrant/share/simplepage.php
+     dest: /var/www/html/index.php
+     owner: vagrant
+     group: vagrant
+     mode: '0644'
+
+  - name: Delete index.html
+    file:
+     path: /var/www/html/index.html
+     state: absent
+
+  - name: Change Listen port Debian
+    lineinfile:
+     path: /etc/apache2/ports.conf
+     regexp: '^Listen '
+     line: 'Listen 8081'
+     state: present
+    when: ansible_os_family == "Debian"
+
+  - name: Change Listen port
+    lineinfile:
+     path: /etc/httpd/conf/httpd.conf
+     regexp: '^Listen '
+     line: 'Listen 8081'
+     state: present
+    when: ansible_os_family == "RedHat"
+
+  - name: Change default conf Debian
+    lineinfile:
+     path: /etc/apache2/sites-available/000-default.conf
+     regexp: '^<VirtualHost \*:'
+     line: '<VirtualHost *:8081>'
+     state: present
+    when: ansible_os_family == "Debian"
+
+  - name: Copy Conf Debian
+    copy:
+     src: /home/vagrant/share/configuration.conf
+     dest: /etc/apache2/sites-available/example.conf
+    when: ansible_os_family == "Debian"
+
+  - name: Copy Conf Centos
+    copy:
+     src: /home/vagrant/share/configuration.conf
+     dest: /etc/httpd/conf/example.conf
+    when: ansible_os_family == "RedHat"
+
+  - name: Restart Apache Debian
+    service:
+      name: apache2
+      state: restarted
+    when: ansible_os_family == "Debian"
+    
+  - name: Restart Httpd
+    service:
+      name: httpd
+      state: restarted
+    when: ansible_os_family == "RedHat"
