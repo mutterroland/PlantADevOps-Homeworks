@@ -7,7 +7,11 @@
 # you're doing.
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
+
+  # Please use a ssh key saved in this repo, it's just a lab and others may want to run this.
   config.ssh.private_key_path = "C:/Users/roland.mutter/.ssh/id_rsa"
+
+
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
@@ -43,7 +47,7 @@ Vagrant.configure("2") do |config|
 		  chown -R vagrant:vagrant /home/vagrant/.ssh
 		SHELL
   end
-  
+
   config.vm.define :node1 do |config|
     config.vm.box = "ubuntu/bionic64"
     config.vm.box_version = "20190918.0.0"
@@ -70,7 +74,7 @@ Vagrant.configure("2") do |config|
       apt-get purge apache2 -y
     SHELL
   end
-  
+
   config.vm.define :node2 do |config|
     config.vm.box = "geerlingguy/centos7"
     config.vm.host_name = "node2"
@@ -96,7 +100,7 @@ Vagrant.configure("2") do |config|
 	  echo -e "\n---- Node 1 and Node 2 are ready, make sure you use ansible playbooks from master ----"
     SHELL
   end
-  
+
   config.vm.define :node3 do |config|
 	config.vm.box = "ubuntu/bionic64"
 	config.vm.synced_folder "./share", "/home/vagrant/share"
@@ -136,7 +140,7 @@ Vagrant.configure("2") do |config|
 	  service jenkins start
 	SHELL
   end
-  
+
   config.vm.define :node4 do |config|
 	config.vm.box = "ubuntu/bionic64"
 	config.vm.synced_folder "./share", "/home/vagrant/share"
