@@ -28,19 +28,34 @@
     when: ansible_os_family == "RedHat"
 
   - name: Start & Enable Apache Server to start on boot
-    service: name=httpd state=started enabled=yes
+    service:
+     name:
+      - httpd
+     state: started
+     enabled: yes
     when: ansible_os_family == "RedHat"
 
   - name: Start Apache
-    service: name=apache2 state=started enabled=true
+    service:
+     name:
+      - apache2
+     state: started
+     enabled: true
     when: ansible_os_family == "Debian"
 
   - name: Install MySql
-    apt: pkg=mysql-server state=present
+    apt:
+     name:
+      - mysql-server
+     state: present
     when: ansible_os_family == "Debian"
 
   - name: Start Mysql
-    service: name=mysql state=started enabled=true
+    service:
+     name:
+      - mysql
+     state:started
+     enabled: true
     when: ansible_os_family == "Debian"
 
   - name: Add repo for PHP
