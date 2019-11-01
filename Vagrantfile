@@ -7,11 +7,7 @@
 # you're doing.
 Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
-
-  # Please use a ssh key saved in this repo, it's just a lab and others may want to run this.
-  config.ssh.private_key_path = "C:/Users/roland.mutter/.ssh/id_rsa"
-
-
+  config.ssh.private_key_path = "./share/id_rsa"
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
@@ -37,7 +33,6 @@ Vagrant.configure("2") do |config|
 		  rm /home/vagrant/.ssh/authorized_keys
 		  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
 		  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
-		  #cp /home/vagrant/share/id_rsa2.pub /home/vagrant/.ssh/authorized_keys
 		  rm /./etc/ansible/hosts
 		  cp /home/vagrant/share/hosts.txt /./etc/ansible/hosts
 		  echo -e "\n---- ssh permisions set ----"
@@ -47,7 +42,7 @@ Vagrant.configure("2") do |config|
 		  chown -R vagrant:vagrant /home/vagrant/.ssh
 		SHELL
   end
-
+  
   config.vm.define :node1 do |config|
     config.vm.box = "ubuntu/bionic64"
     config.vm.box_version = "20190918.0.0"
@@ -65,16 +60,19 @@ Vagrant.configure("2") do |config|
 	  rm /home/vagrant/.ssh/authorized_keys
 	  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
 	  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
-	  #cp /home/vagrant/share/id_rsa2.pub /home/vagrant/.ssh/authorized_keys
 	  echo -e "\n---- ssh permisions set ----"
 	  chmod 755 /home/vagrant/.ssh
 	  chmod 400 /home/vagrant/.ssh/id_rsa
 	  chmod 400 /home/vagrant/.ssh/authorized_keys
 	  chown -R vagrant:vagrant /home/vagrant/.ssh
       apt-get purge apache2 -y
+	  apt-get install collectd collectd-utils -y
+	  cp /home/vagrant/share/collectd.conf /etc/collectd/
+	  service collectd stop
+	  service collectd start
     SHELL
   end
-
+  
   config.vm.define :node2 do |config|
     config.vm.box = "geerlingguy/centos7"
     config.vm.host_name = "node2"
@@ -91,16 +89,19 @@ Vagrant.configure("2") do |config|
 	  rm /home/vagrant/.ssh/authorized_keys
 	  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
 	  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
-	  #cp /home/vagrant/share/id_rsa2.pub /home/vagrant/.ssh/authorized_keys
 	  echo -e "\n---- ssh permisions set ----"
 	  chmod 755 /home/vagrant/.ssh
 	  chmod 400 /home/vagrant/.ssh/id_rsa
 	  chmod 400 /home/vagrant/.ssh/authorized_keys
 	  chown -R vagrant:vagrant /home/vagrant/.ssh
-	  echo -e "\n---- Node 1 and Node 2 are ready, make sure you use ansible playbooks from master ----"
+	  apt-get install collectd collectd-utils -y
+	  cp /home/vagrant/share/collectd.conf /etc/collectd/
+	  service collectd stop
+	  service collectd start
+	  echo -e "\n PLEASE CHANGE Hostname Node1 ACCORDINGLY WITH THE NAME OF THIS MACHINE IN /etc/collectd/collectd.conf"
     SHELL
   end
-
+  
   config.vm.define :node3 do |config|
 	config.vm.box = "ubuntu/bionic64"
 	config.vm.synced_folder "./share", "/home/vagrant/share"
@@ -126,7 +127,6 @@ Vagrant.configure("2") do |config|
 	  rm /home/vagrant/.ssh/authorized_keys
 	  cp /home/vagrant/share/id_rsa /home/vagrant/.ssh/id_rsa
 	  cp /home/vagrant/share/id_rsa.pub /home/vagrant/.ssh/authorized_keys
-	  #cp /home/vagrant/share/id_rsa2.pub /home/vagrant/.ssh/authorized_keys
 	  rm /./etc/ansible/hosts
 	  cp /home/vagrant/share/hosts.txt /./etc/ansible/hosts
 	  echo -e "\n---- ssh permisions set ----"
@@ -140,9 +140,10 @@ Vagrant.configure("2") do |config|
 	  service jenkins start
 	SHELL
   end
-
+  
+  # Node 4 is not 100% functional without manually configuring it. I'll let those here for further references
   config.vm.define :node4 do |config|
-	config.vm.box = "ubuntu/bionic64"
+	config.vm.box = "ubuntu/xenial64"
 	config.vm.synced_folder "./share", "/home/vagrant/share"
 	config.vm.host_name = "node4"
 	config.vm.network "public_network"
@@ -162,8 +163,34 @@ Vagrant.configure("2") do |config|
 	  chmod 400 /home/vagrant/.ssh/id_rsa
 	  chmod 400 /home/vagrant/.ssh/authorized_keys
 	  chown -R vagrant:vagrant /home/vagrant/.ssh
+	  apt-get install graphite-web graphite-carbon -y
+	  apt-get install postgresql libpg-dev python-psycopg2 -y
+	  apt-get install apache2 libapache2-mod-wsgi -y
+	  cp /home/vagrant/share/graphite-carbon.txt /etc/default/graphite-carbon
+	  cp /home/vagrant/share/carbon.txt /etc/carbon/carbon.conf
+	  a2dissite 000-default
+	  a2ensite apache2-graphite
+	  systemctl restart apache2
+	  ufw allow 80
+	  apt-get install -y gnupg2 curl
+	  curl https://packages.grafana.com/gpg.key | apt-key add -
+	  add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
+	  apt-get update
+	  apt-get install grafana -y
+	  systemctl start grafana-server
+	  systemctl enable grafana-server
+	  ufw allow proto tcp from any to any port 3000
+      echo -e "\n MAKE SURE TO RUN THE FOLLOWING COMMANDS TO CREATE A DB FOR GRAPHITE:
+	  \n sudo -u postgres psql
+	  \n CREATE USER graphite WITH PASSWORD 'roli';
+	  \n CREATE DATABASE graphite WITH OWNER graphite;
+	  \n sudo cp /home/vagrant/share/local_settings.py /etc/graphite/local_settings.py
+	  \n sudo graphite-manage migrate auth
+	  \n sudo graphite-manage syncdb
+	  \n sudo systemctl start carbon-cache"
 	SHELL
   end
+  
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
