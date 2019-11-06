@@ -141,7 +141,6 @@ Vagrant.configure("2") do |config|
 	SHELL
   end
   
-  # Node 4 is not 100% functional without manually configuring it. I'll let those here for further references
   config.vm.define :node4 do |config|
 	config.vm.box = "ubuntu/xenial64"
 	config.vm.synced_folder "./share", "/home/vagrant/share"
@@ -163,12 +162,14 @@ Vagrant.configure("2") do |config|
 	  chmod 400 /home/vagrant/.ssh/id_rsa
 	  chmod 400 /home/vagrant/.ssh/authorized_keys
 	  chown -R vagrant:vagrant /home/vagrant/.ssh
-	  apt-get install graphite-web graphite-carbon -y
-	  apt-get install postgresql libpg-dev python-psycopg2 -y
+	  DEBIAN_FRONTEND=noninteractive apt-get -y install graphite-carbon graphite-web
+	  apt-get install python-dev -y
+	  apt-get install postgresql libpq-dev python-psycopg2 -y
 	  apt-get install apache2 libapache2-mod-wsgi -y
 	  cp /home/vagrant/share/graphite-carbon.txt /etc/default/graphite-carbon
 	  cp /home/vagrant/share/carbon.txt /etc/carbon/carbon.conf
 	  a2dissite 000-default
+	  cp /usr/share/graphite-web/apache2-graphite.conf /etc/apache2/sites-available/
 	  a2ensite apache2-graphite
 	  systemctl restart apache2
 	  ufw allow 80
@@ -180,17 +181,15 @@ Vagrant.configure("2") do |config|
 	  systemctl start grafana-server
 	  systemctl enable grafana-server
 	  ufw allow proto tcp from any to any port 3000
-      echo -e "\n MAKE SURE TO RUN THE FOLLOWING COMMANDS TO CREATE A DB FOR GRAPHITE:
-	  \n sudo -u postgres psql
-	  \n CREATE USER graphite WITH PASSWORD 'roli';
-	  \n CREATE DATABASE graphite WITH OWNER graphite;
-	  \n sudo cp /home/vagrant/share/local_settings.py /etc/graphite/local_settings.py
-	  \n sudo graphite-manage migrate auth
-	  \n sudo graphite-manage syncdb
-	  \n sudo systemctl start carbon-cache"
+	  sudo -u postgres psql -c "CREATE USER graphite WITH PASSWORD 'roli';"
+	  sudo -u postgres psql -c "CREATE DATABASE graphite WITH OWNER graphite;"
+	  cp /home/vagrant/share/local_settings.py /etc/graphite/local_settings.py
+	  graphite-manage migrate auth
+	  graphite-manage syncdb --noinput
+	  systemctl start carbon-cache
 	SHELL
   end
-  
+ 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
